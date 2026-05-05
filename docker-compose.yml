@@ -3,8 +3,9 @@ services:
     image: ${FRONTEND_IMAGE:-ghcr.io/veriqorn/veriqorn-frontend}:${PLATFORM_VERSION:-latest}
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3000}:3000"
     environment:
+      VITE_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
     depends_on:
       - backend
@@ -13,7 +14,7 @@ services:
     image: ${BACKEND_IMAGE:-ghcr.io/veriqorn/veriqorn-backend}:${PLATFORM_VERSION:-latest}
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      - "${BACKEND_PORT:-3001}:3001"
     environment:
       NODE_ENV: production
       PORT: 3001
@@ -26,6 +27,7 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      BACKEND_V2_RUN_MIGRATIONS: "true"
       AI_ANALYSIS_LICENSE_PUBLIC_KEY: ${AI_ANALYSIS_LICENSE_PUBLIC_KEY:-}
     depends_on:
       postgres:
@@ -37,7 +39,7 @@ services:
     image: timescale/timescaledb:2.14.2-pg14
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
@@ -54,8 +56,8 @@ services:
     image: minio/minio:RELEASE.2024-06-13T22-53-53Z
     restart: unless-stopped
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
@@ -87,4 +89,6 @@ services:
 
 volumes:
   postgres_data:
+    name: ${VERIQORN_POSTGRES_VOLUME:-veriqorn-postgres-data}
   minio_data:
+    name: ${VERIQORN_MINIO_VOLUME:-veriqorn-minio-data}
