@@ -7,6 +7,8 @@ services:
     environment:
       VITE_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+      VITE_KB_URL: ${NEXT_PUBLIC_KB_URL:-http://localhost:5174}
+      NEXT_PUBLIC_KB_URL: ${NEXT_PUBLIC_KB_URL:-http://localhost:5174}
     depends_on:
       - backend
 
@@ -28,12 +30,36 @@ services:
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       BACKEND_V2_RUN_MIGRATIONS: "true"
+      PLATFORM_VERSION: ${PLATFORM_VERSION:-latest}
+      PLATFORM_UPDATE_AGENT_URL: ${PLATFORM_UPDATE_AGENT_URL:-http://update-agent:8787}
+      PLATFORM_UPDATE_AGENT_TOKEN: ${PLATFORM_UPDATE_AGENT_TOKEN:-}
       AI_ANALYSIS_LICENSE_PUBLIC_KEY: ${AI_ANALYSIS_LICENSE_PUBLIC_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
       minio:
         condition: service_healthy
+
+  # This is the only service permitted to use Docker. Do not mount the Docker
+  # socket into backend or frontend.
+  update-agent:
+    build:
+      context: ./update-agent
+    restart: unless-stopped
+    environment:
+      UPDATE_AGENT_TOKEN: ${PLATFORM_UPDATE_AGENT_TOKEN:?PLATFORM_UPDATE_AGENT_TOKEN is required}
+      UPDATE_COMPOSE_FILE: /install/docker-compose.yml
+      UPDATE_ENV_FILE: /install/.env
+      UPDATE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME:-veriqorn}
+      UPDATE_CURRENT_VERSION: ${PLATFORM_VERSION:-latest}
+      UPDATE_BACKEND_IMAGE: ${BACKEND_IMAGE:-ghcr.io/veriqorn/veriqorn-backend}
+      UPDATE_FRONTEND_IMAGE: ${FRONTEND_IMAGE:-ghcr.io/veriqorn/veriqorn-frontend}
+      UPDATE_RELEASES_URL: ${UPDATE_RELEASES_URL:-https://api.github.com/repos/veriqorn/veriqorn-platform/releases/latest}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./docker-compose.yml:/install/docker-compose.yml:ro
+      - ./.env:/install/.env:rw
+      - update_agent_state:/state
 
   postgres:
     image: timescale/timescaledb:2.14.2-pg14
@@ -92,3 +118,5 @@ volumes:
     name: ${VERIQORN_POSTGRES_VOLUME:-veriqorn-postgres-data}
   minio_data:
     name: ${VERIQORN_MINIO_VOLUME:-veriqorn-minio-data}
+  update_agent_state:
+    name: ${VERIQORN_UPDATE_AGENT_VOLUME:-veriqorn-update-agent-state}

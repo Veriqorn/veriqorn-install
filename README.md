@@ -14,7 +14,17 @@ Application source code is not included in this repository.
 1. Clone this repository or download `docker-compose.yml` and `.env.example`.
 2. Copy `.env.example` to `.env`.
 3. Set strong values for `JWT_SECRET`, `POSTGRES_PASSWORD`, and `MINIO_ROOT_PASSWORD`.
-4. Start the platform:
+4. Optional but recommended before customer handoff: verify image access:
+
+```bash
+docker pull ghcr.io/veriqorn/veriqorn-backend:latest
+docker pull ghcr.io/veriqorn/veriqorn-frontend:latest
+```
+
+If either command returns `unauthorized`, make the GHCR package public or run
+`docker login ghcr.io` with a token that can read the package before starting.
+
+5. Start the platform:
 
 ```bash
 docker compose -f docker-compose.yml up -d
@@ -65,6 +75,7 @@ Optional defaults you can override in `.env`:
 - `BACKEND_PORT` (default `3001`)
 - `VERIQORN_POSTGRES_VOLUME` (default `veriqorn-postgres-data`)
 - `VERIQORN_MINIO_VOLUME` (default `veriqorn-minio-data`)
+- `NEXT_PUBLIC_KB_URL` (default `http://localhost:5174`, if the standalone KB site is deployed)
 
 ## Default Application Users
 
@@ -98,6 +109,11 @@ docker compose -f docker-compose.yml up -d
 To pin a specific release, set `PLATFORM_VERSION` in `.env`.
 
 If you stay on the same PostgreSQL major version, the existing database volume continues to work across application updates. A PostgreSQL major upgrade is different: treat that as a database migration and take a backup first.
+
+## DevOps Handoff
+
+For customer-facing install preflight, validation, and data-safety commands, see
+`DEVOPS-HANDOFF.md`.
 
 ## Images
 
