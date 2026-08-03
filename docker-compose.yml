@@ -3,7 +3,7 @@ services:
     image: ${FRONTEND_IMAGE:-ghcr.io/veriqorn/veriqorn-frontend}:${PLATFORM_VERSION:-latest}
     restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT:-3000}:3000"
+      - "127.0.0.1:${FRONTEND_PORT:-3000}:3000"
     environment:
       VITE_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
@@ -16,19 +16,22 @@ services:
     image: ${BACKEND_IMAGE:-ghcr.io/veriqorn/veriqorn-backend}:${PLATFORM_VERSION:-latest}
     restart: unless-stopped
     ports:
-      - "${BACKEND_PORT:-3001}:3001"
+      - "127.0.0.1:${BACKEND_PORT:-3001}:3001"
     environment:
       NODE_ENV: production
       PORT: 3001
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-test_ops}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      BACKEND_SECURE_COOKIES: ${BACKEND_SECURE_COOKIES:-false}
       MINIO_ENDPOINT: minio
       MINIO_PORT: 9000
       MINIO_USE_SSL: "false"
-      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      MINIO_ACCESS_KEY: ${MINIO_SERVICE_ACCESS_KEY:?MINIO_SERVICE_ACCESS_KEY is required}
+      MINIO_SECRET_KEY: ${MINIO_SERVICE_SECRET_KEY:?MINIO_SERVICE_SECRET_KEY is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      BACKEND_BOOTSTRAP_ADMIN_EMAIL: ${BACKEND_BOOTSTRAP_ADMIN_EMAIL:-}
+      BACKEND_BOOTSTRAP_ADMIN_PASSWORD: ${BACKEND_BOOTSTRAP_ADMIN_PASSWORD:-}
       BACKEND_V2_RUN_MIGRATIONS: "true"
       PLATFORM_VERSION: ${PLATFORM_VERSION:-latest}
       PLATFORM_UPDATE_AGENT_URL: ${PLATFORM_UPDATE_AGENT_URL:-http://update-agent:8787}
@@ -39,6 +42,23 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    profiles: ["tls"]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      VERIQORN_PUBLIC_HOST: ${VERIQORN_PUBLIC_HOST:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
 
   # This is the only service permitted to use Docker. Do not mount the Docker
   # socket into backend or frontend.
@@ -55,6 +75,8 @@ services:
       UPDATE_BACKEND_IMAGE: ${BACKEND_IMAGE:-ghcr.io/veriqorn/veriqorn-backend}
       UPDATE_FRONTEND_IMAGE: ${FRONTEND_IMAGE:-ghcr.io/veriqorn/veriqorn-frontend}
       UPDATE_RELEASES_URL: ${UPDATE_RELEASES_URL:-https://api.github.com/repos/veriqorn/veriqorn-platform/releases/latest}
+      UPDATE_COSIGN_IMAGE: ${UPDATE_COSIGN_IMAGE:-ghcr.io/sigstore/cosign/cosign:v2.4.3}
+      UPDATE_COSIGN_IDENTITY: ${UPDATE_COSIGN_IDENTITY:-https://github.com/veriqorn/veriqorn-platform/.github/workflows/publish-platform-images.yml@refs/tags/v*}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./docker-compose.yml:/install/docker-compose.yml:ro
@@ -65,7 +87,7 @@ services:
     image: timescale/timescaledb:2.14.2-pg14
     restart: unless-stopped
     ports:
-      - "${POSTGRES_HOST_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
@@ -82,8 +104,8 @@ services:
     image: minio/minio:RELEASE.2024-06-13T22-53-53Z
     restart: unless-stopped
     ports:
-      - "${MINIO_API_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+      - "127.0.0.1:${MINIO_API_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
@@ -105,12 +127,18 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      MINIO_SERVICE_ACCESS_KEY: ${MINIO_SERVICE_ACCESS_KEY:?MINIO_SERVICE_ACCESS_KEY is required}
+      MINIO_SERVICE_SECRET_KEY: ${MINIO_SERVICE_SECRET_KEY:?MINIO_SERVICE_SECRET_KEY is required}
     entrypoint: >
       /bin/sh -c "
       mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
       mc mb --ignore-existing local/artifacts &&
       mc mb --ignore-existing local/traces &&
-      mc mb --ignore-existing local/screenshots
+      mc mb --ignore-existing local/screenshots &&
+      printf '%s' '{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":[\"s3:GetBucketLocation\",\"s3:ListBucket\"],\"Resource\":[\"arn:aws:s3:::artifacts\",\"arn:aws:s3:::traces\",\"arn:aws:s3:::screenshots\"]},{\"Effect\":\"Allow\",\"Action\":[\"s3:GetObject\",\"s3:PutObject\",\"s3:DeleteObject\"],\"Resource\":[\"arn:aws:s3:::artifacts/*\",\"arn:aws:s3:::traces/*\",\"arn:aws:s3:::screenshots/*\"]}]}' > /tmp/veriqorn-app-policy.json &&
+      (mc admin policy create local veriqorn-app /tmp/veriqorn-app-policy.json || true) &&
+      (mc admin user info local $$MINIO_SERVICE_ACCESS_KEY >/dev/null 2>&1 || mc admin user add local $$MINIO_SERVICE_ACCESS_KEY $$MINIO_SERVICE_SECRET_KEY) &&
+      mc admin policy attach local veriqorn-app --user $$MINIO_SERVICE_ACCESS_KEY
       "
 
 volumes:
@@ -120,3 +148,5 @@ volumes:
     name: ${VERIQORN_MINIO_VOLUME:-veriqorn-minio-data}
   update_agent_state:
     name: ${VERIQORN_UPDATE_AGENT_VOLUME:-veriqorn-update-agent-state}
+  caddy_data:
+  caddy_config:

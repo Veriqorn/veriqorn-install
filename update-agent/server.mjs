@@ -11,6 +11,8 @@ const projectName = process.env.UPDATE_PROJECT_NAME || 'veriqorn';
 const backendImage = process.env.UPDATE_BACKEND_IMAGE || 'ghcr.io/veriqorn/veriqorn-backend';
 const frontendImage = process.env.UPDATE_FRONTEND_IMAGE || 'ghcr.io/veriqorn/veriqorn-frontend';
 const releasesUrl = process.env.UPDATE_RELEASES_URL || 'https://api.github.com/repos/veriqorn/veriqorn-platform/releases/latest';
+const cosignImage = process.env.UPDATE_COSIGN_IMAGE || 'ghcr.io/sigstore/cosign/cosign:v2.4.3';
+const cosignIdentity = process.env.UPDATE_COSIGN_IDENTITY || 'https://github.com/veriqorn/veriqorn-platform/.github/workflows/publish-platform-images.yml@refs/tags/v*';
 const stateFile = '/state/update-jobs.jsonl';
 let activeJob = null;
 
@@ -95,6 +97,12 @@ const imageDigest = async (image) => {
   if (!result.includes('@sha256:')) throw new Error(`No immutable digest found for ${image}.`);
   return result;
 };
+const verifyImageSignature = async (image) => run([
+  'run', '--rm', cosignImage, 'verify',
+  '--certificate-identity-regexp', `^${cosignIdentity.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace('v\\*', 'v.*')}$`,
+  '--certificate-oidc-issuer', 'https://token.actions.githubusercontent.com',
+  image,
+]);
 const execute = async (job) => {
   try {
     const latest = await release();
@@ -104,6 +112,8 @@ const execute = async (job) => {
     await run(composeArgs('pull', 'backend', 'frontend'), environment);
     const backendDigest = await imageDigest(`${backendImage}:${latest.version}`);
     const frontendDigest = await imageDigest(`${frontendImage}:${latest.version}`);
+    await verifyImageSignature(backendDigest);
+    await verifyImageSignature(frontendDigest);
     await updateEnvVersion(latest.version);
     await run(composeArgs('up', '-d', '--no-deps', 'backend', 'frontend'));
     await waitForBackend();

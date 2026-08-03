@@ -1,0 +1,15 @@
+{$VERIQORN_PUBLIC_HOST} {
+  encode zstd gzip
+
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    Referrer-Policy "strict-origin-when-cross-origin"
+  }
+
+  reverse_proxy /api/* backend:3001
+  reverse_proxy /healthz backend:3001
+  reverse_proxy /ws backend:3001
+  reverse_proxy frontend:3000
+}

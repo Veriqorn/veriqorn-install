@@ -33,10 +33,22 @@ Before first start, set production values in `.env`:
 - `JWT_SECRET`
 - `POSTGRES_PASSWORD`
 - `MINIO_ROOT_PASSWORD`
+- `MINIO_SERVICE_SECRET_KEY`
 - `FRONTEND_URL`
 - `CORS_ORIGINS`
 - `NEXT_PUBLIC_API_URL`
 - `NEXT_PUBLIC_KB_URL`, if the standalone Knowledge Base site is deployed
+
+Run the preflight check before starting. It fails on placeholder or weak
+secrets, a missing outbound-host allowlist, invalid Compose interpolation, and,
+with `-Production`, missing HTTPS and secure-cookie settings:
+
+```bash
+chmod +x ./preflight.sh
+./preflight.sh .env --production
+```
+
+For a Windows-hosted installation, use `powershell -ExecutionPolicy Bypass -File .\preflight.ps1 -Production` instead.
 
 For production, prefer a pinned release tag:
 
@@ -47,9 +59,13 @@ PLATFORM_VERSION=vX.Y.Z
 Start:
 
 ```bash
-docker compose --env-file .env -f docker-compose.yml up -d
+docker compose --env-file .env --profile tls -f docker-compose.yml up -d
 docker compose --env-file .env -f docker-compose.yml ps
 ```
+
+Do not publish backend, PostgreSQL, or MinIO directly through an Internet
+firewall. The supplied Compose file binds them to loopback; expose only Caddy
+ports 80/443 after the preflight check passes.
 
 ## Validate
 

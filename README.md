@@ -13,8 +13,31 @@ Application source code is not included in this repository.
 
 1. Clone this repository or download `docker-compose.yml` and `.env.example`.
 2. Copy `.env.example` to `.env`.
-3. Set strong values for `JWT_SECRET`, `POSTGRES_PASSWORD`, and `MINIO_ROOT_PASSWORD`.
-4. Optional but recommended before customer handoff: verify image access:
+3. Set strong values for `JWT_SECRET`, `POSTGRES_PASSWORD`, `MINIO_ROOT_PASSWORD`,
+   `MINIO_SERVICE_SECRET_KEY`, and the one-time
+   `BACKEND_BOOTSTRAP_ADMIN_EMAIL` / `BACKEND_BOOTSTRAP_ADMIN_PASSWORD` pair.
+4. Run the preflight check before the first start. It validates required secrets and Compose configuration without printing their values:
+
+```bash
+chmod +x ./preflight.sh
+./preflight.sh
+```
+
+On Windows PowerShell, use:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\preflight.ps1
+```
+
+For an Internet-facing production deployment, configure the TLS values in `.env` and run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\preflight.ps1 -Production
+```
+
+On Linux, use `./preflight.sh .env --production`.
+
+5. Optional but recommended before customer handoff: verify image access:
 
 ```bash
 docker pull ghcr.io/veriqorn/veriqorn-backend:latest
@@ -24,10 +47,18 @@ docker pull ghcr.io/veriqorn/veriqorn-frontend:latest
 If either command returns `unauthorized`, make the GHCR package public or run
 `docker login ghcr.io` with a token that can read the package before starting.
 
-5. Start the platform:
+6. Start the platform:
 
 ```bash
 docker compose -f docker-compose.yml up -d
+```
+
+For an Internet-facing deployment, use the TLS profile instead. It serves the
+application through Caddy on ports 80/443; keep the app, database, and MinIO
+ports bound to loopback as provided by the Compose file:
+
+```bash
+docker compose --profile tls -f docker-compose.yml up -d
 ```
 
 After `.env` is prepared, the platform starts with that single command.
@@ -62,6 +93,8 @@ Infrastructure passwords are configured in `.env` before the first start:
 - `JWT_SECRET` - application signing secret
 - `POSTGRES_PASSWORD` - PostgreSQL password
 - `MINIO_ROOT_PASSWORD` - MinIO admin password
+- `MINIO_SERVICE_ACCESS_KEY` and `MINIO_SERVICE_SECRET_KEY` - least-privilege
+  credentials used by the backend for artifacts, traces, and screenshots
 
 Optional defaults you can override in `.env`:
 - `POSTGRES_USER` (default `postgres`)
@@ -77,13 +110,12 @@ Optional defaults you can override in `.env`:
 - `VERIQORN_MINIO_VOLUME` (default `veriqorn-minio-data`)
 - `NEXT_PUBLIC_KB_URL` (default `http://localhost:5174`, if the standalone KB site is deployed)
 
-## Default Application Users
+## First Administrator
 
-The current platform bootstrap still creates default application users on first start:
-- Admin: `admin@example.com` / `admin123`
-- User: `user@example.com` / `user123`
-
-Change these credentials immediately after the first login in production deployments.
+On an empty database, the backend creates only the administrator specified by
+`BACKEND_BOOTSTRAP_ADMIN_EMAIL` and `BACKEND_BOOTSTRAP_ADMIN_PASSWORD`. No
+default application users or passwords exist. Remove the bootstrap password
+from the environment after the first successful login.
 
 ## Open The Services
 
@@ -109,6 +141,11 @@ docker compose -f docker-compose.yml up -d
 To pin a specific release, set `PLATFORM_VERSION` in `.env`.
 
 If you stay on the same PostgreSQL major version, the existing database volume continues to work across application updates. A PostgreSQL major upgrade is different: treat that as a database migration and take a backup first.
+
+The bundled update agent pulls immutable image digests and verifies their
+keyless Cosign signatures before switching versions. Keep
+`UPDATE_COSIGN_IDENTITY` set to the official publish workflow unless your
+organization deliberately publishes its own signed images.
 
 ## DevOps Handoff
 
