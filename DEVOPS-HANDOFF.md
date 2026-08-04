@@ -53,7 +53,7 @@ For a Windows-hosted installation, use `powershell -ExecutionPolicy Bypass -File
 For production, prefer a pinned release tag:
 
 ```env
-PLATFORM_VERSION=vX.Y.Z
+PLATFORM_VERSION=v0.1.0
 ```
 
 Start:
