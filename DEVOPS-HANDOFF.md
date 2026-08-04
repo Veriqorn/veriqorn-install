@@ -122,7 +122,8 @@ The agent is intentionally not published on a host port. The backend talks to
 it only over the private Compose network. It is the only service with Docker
 socket access, and it accepts only a token-authenticated request from the
 backend. It does not accept a Docker image, tag, command, or Compose path from
-the UI: it selects the latest stable GitHub release, pulls only the allow-listed
+the UI: it selects the latest stable version from the public installation release
+manifest, pulls only the allow-listed
 Veriqorn backend/frontend images, records immutable image digests, updates
 `PLATFORM_VERSION`, recreates those two services, and waits for backend health.
 

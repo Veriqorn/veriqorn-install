@@ -10,7 +10,7 @@ const envFile = process.env.UPDATE_ENV_FILE || '/install/.env';
 const projectName = process.env.UPDATE_PROJECT_NAME || 'veriqorn';
 const backendImage = process.env.UPDATE_BACKEND_IMAGE || 'ghcr.io/veriqorn/veriqorn-backend';
 const frontendImage = process.env.UPDATE_FRONTEND_IMAGE || 'ghcr.io/veriqorn/veriqorn-frontend';
-const releasesUrl = process.env.UPDATE_RELEASES_URL || 'https://api.github.com/repos/veriqorn/veriqorn-platform/releases/latest';
+const releasesUrl = process.env.UPDATE_RELEASES_URL || 'https://raw.githubusercontent.com/veriqorn/veriqorn-install/master/releases/latest.json';
 const cosignImage = process.env.UPDATE_COSIGN_IMAGE || 'ghcr.io/sigstore/cosign/cosign:v2.4.3';
 const cosignIdentity = process.env.UPDATE_COSIGN_IDENTITY || 'https://github.com/veriqorn/veriqorn-platform/.github/workflows/publish-platform-images.yml@refs/tags/v*';
 const stateFile = '/state/update-jobs.jsonl';
@@ -55,8 +55,11 @@ const release = async () => {
   const response = await fetch(releasesUrl, { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'veriqorn-update-agent' }, signal: AbortSignal.timeout(10_000) });
   if (!response.ok) throw new Error(`Release lookup failed (${response.status}).`);
   const data = await response.json();
-  if (!data || data.draft || data.prerelease || !isReleaseTag(data.tag_name)) throw new Error('The release source did not return a stable semver tag.');
-  return { version: data.tag_name, releaseNotesUrl: typeof data.html_url === 'string' ? data.html_url : null };
+  if (!data || !isReleaseTag(data.version)) throw new Error('The release manifest did not return a stable semver tag.');
+  const releaseNotesUrl = typeof data.releaseNotesUrl === 'string' && data.releaseNotesUrl.startsWith('https://')
+    ? data.releaseNotesUrl
+    : null;
+  return { version: data.version, releaseNotesUrl };
 };
 const installedVersion = async () => {
   const env = await readFile(envFile, 'utf8');
