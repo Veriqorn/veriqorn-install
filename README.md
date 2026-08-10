@@ -83,6 +83,28 @@ MinIO, named volumes, and all Community environment contracts are unchanged.
 Do not put the license document itself in `.env` or commit it to an
 installation repository.
 
+## Air-gapped Community bundle
+
+On an Internet-connected staging machine, pull a pinned, signed Community
+release, verify its Cosign signature, then create a transport bundle from the
+local images:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\bundle-airgap.ps1 `
+  -BackendImage ghcr.io/veriqorn/veriqorn-backend@sha256:<digest> `
+  -FrontendImage ghcr.io/veriqorn/veriqorn-frontend@sha256:<digest> `
+  -Version v0.1.0 `
+  -OutputDirectory .\veriqorn-community-v0.1.0-airgap
+```
+
+The script copies Compose/preflight assets, exports the two Docker images, and
+writes `bundle-manifest.json` and `SHA256SUMS`. It refuses to overwrite a
+bundle and never includes a customer license or registry credentials. On the
+offline host, verify `SHA256SUMS`, load the image archives with `docker load`,
+set the pinned image references in `.env`, and run the normal preflight and
+Compose commands. Enterprise air-gapped delivery additionally requires the
+customer-specific Enterprise images and license; it is supplied separately.
+
 ## Data Persistence
 
 Application updates recreate containers, but they do not recreate your data volumes.
