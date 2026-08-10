@@ -1,0 +1,14 @@
+# Apply this file on top of docker-compose.yml for a licensed Enterprise
+# installation. It intentionally changes only application images and the
+# read-only license mount; databases, storage, volumes, and networking remain
+# identical to Community.
+services:
+  frontend:
+    image: ${ENTERPRISE_FRONTEND_IMAGE:-ghcr.io/veriqorn/veriqorn-enterprise-frontend}:${ENTERPRISE_VERSION:-latest}
+
+  backend:
+    image: ${ENTERPRISE_BACKEND_IMAGE:-ghcr.io/veriqorn/veriqorn-enterprise-backend}:${ENTERPRISE_VERSION:-latest}
+    environment:
+      VERIQORN_LICENSE_FILE: /run/veriqorn/license/license.json
+    volumes:
+      - ${VERIQORN_LICENSE_FILE:?Set VERIQORN_LICENSE_FILE to the local license file path}:/run/veriqorn/license/license.json:ro

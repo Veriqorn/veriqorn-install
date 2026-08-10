@@ -63,6 +63,26 @@ docker compose --profile tls -f docker-compose.yml up -d
 
 After `.env` is prepared, the platform starts with that single command.
 
+## Enterprise Overlay
+
+Community is the default and never needs a product license. For Enterprise,
+obtain access to the private Enterprise image registry and a signed license
+file from Veriqorn. Keep that license outside Git, then create
+`.env.enterprise` from `.env.enterprise.example` and set its local path.
+
+Start the same platform with the overlay:
+
+```bash
+docker compose --env-file .env --env-file .env.enterprise \
+  -f docker-compose.yml -f compose.enterprise.yml up -d
+```
+
+The overlay replaces only `backend` and `frontend` images and mounts the
+license file read-only at `/run/veriqorn/license/license.json`. PostgreSQL,
+MinIO, named volumes, and all Community environment contracts are unchanged.
+Do not put the license document itself in `.env` or commit it to an
+installation repository.
+
 ## Data Persistence
 
 Application updates recreate containers, but they do not recreate your data volumes.
@@ -161,7 +181,7 @@ Available package versions are listed at `https://github.com/orgs/veriqorn/packa
 
 ## Related Repositories
 
-- Product source code: `https://github.com/veriqorn/veriqorn-platform`
+- Community source code: `https://github.com/Veriqorn/veriqorn`
 - Public docs and marketing site: `https://github.com/veriqorn/veriqorn-site`
 
 ## License

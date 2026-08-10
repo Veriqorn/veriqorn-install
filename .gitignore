@@ -1,3 +1,5 @@
 .env
+.env.enterprise
+licenses/
 .env.local
 .env.*.local
