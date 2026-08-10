@@ -12,7 +12,7 @@ const backendImage = process.env.UPDATE_BACKEND_IMAGE || 'ghcr.io/veriqorn/veriq
 const frontendImage = process.env.UPDATE_FRONTEND_IMAGE || 'ghcr.io/veriqorn/veriqorn-frontend';
 const releasesUrl = process.env.UPDATE_RELEASES_URL || 'https://raw.githubusercontent.com/veriqorn/veriqorn-install/master/releases/latest.json';
 const cosignImage = process.env.UPDATE_COSIGN_IMAGE || 'ghcr.io/sigstore/cosign/cosign:v2.4.3';
-const cosignIdentity = process.env.UPDATE_COSIGN_IDENTITY || 'https://github.com/veriqorn/veriqorn-platform/.github/workflows/publish-platform-images.yml@refs/tags/v*';
+const cosignIdentity = process.env.UPDATE_COSIGN_IDENTITY || 'https://github.com/Veriqorn/veriqorn/.github/workflows/release-community.yml@refs/tags/v*';
 const stateFile = '/state/update-jobs.jsonl';
 let activeJob = null;
 
