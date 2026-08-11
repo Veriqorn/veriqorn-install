@@ -1,0 +1,50 @@
+name: Validate install assets
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - ".env.example"
+      - "docker-compose.yml"
+      - "compose.enterprise.yml"
+      - "preflight.sh"
+      - ".github/workflows/validate-install.yml"
+  pull_request:
+    paths:
+      - ".env.example"
+      - "docker-compose.yml"
+      - "compose.enterprise.yml"
+      - "preflight.sh"
+      - ".github/workflows/validate-install.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Community and Enterprise Compose configuration
+        shell: bash
+        run: |
+          cp .env.example .env.ci
+          sed -i \
+            -e 's|^PLATFORM_UPDATE_AGENT_TOKEN=.*|PLATFORM_UPDATE_AGENT_TOKEN=ci-update-agent-token-with-at-least-thirty-two-characters|' \
+            -e 's|^JWT_SECRET=.*|JWT_SECRET=ci-jwt-secret-with-at-least-thirty-two-characters|' \
+            -e 's|^TRACE_TOKEN_SECRET=.*|TRACE_TOKEN_SECRET=ci-trace-secret-with-at-least-thirty-two-characters|' \
+            -e 's|^BACKEND_BOOTSTRAP_ADMIN_PASSWORD=.*|BACKEND_BOOTSTRAP_ADMIN_PASSWORD=ci-bootstrap-password-at-least-twelve|' \
+            -e 's|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=ci-postgres-password-at-least-sixteen|' \
+            -e 's|^MINIO_ROOT_PASSWORD=.*|MINIO_ROOT_PASSWORD=ci-minio-root-password-at-least-sixteen|' \
+            -e 's|^MINIO_SERVICE_SECRET_KEY=.*|MINIO_SERVICE_SECRET_KEY=ci-minio-service-secret-at-least-sixteen|' \
+            .env.ci
+          ./preflight.sh .env.ci
+          : > .ci-license.json
+          cat >> .env.ci <<EOF
+          ENTERPRISE_BACKEND_IMAGE=example.invalid/veriqorn-enterprise-backend@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          ENTERPRISE_FRONTEND_IMAGE=example.invalid/veriqorn-enterprise-frontend@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+          VERIQORN_LICENSE_FILE=$PWD/.ci-license.json
+          VERIQORN_INSTALLATION_KEY_ENCRYPTION_KEY=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8
+          EOF
+          docker compose --env-file .env.ci -f docker-compose.yml -f compose.enterprise.yml config --quiet
