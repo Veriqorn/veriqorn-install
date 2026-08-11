@@ -69,6 +69,15 @@ Community is the default and never needs a product license. For Enterprise,
 obtain access to the private Enterprise image registry and a signed license
 file from Veriqorn. Keep that license outside Git, then create
 `.env.enterprise` from `.env.enterprise.example` and set its local path.
+The example pins the tested Enterprise AI v0.1.0 images (paired with
+Community Core v0.2.6) by digest. Do not replace them with an unverified tag.
+
+Authenticate to GHCR with a token that has read access to the private
+Enterprise packages before starting:
+
+```bash
+echo "$GHCR_TOKEN" | docker login ghcr.io -u YOUR_GITHUB_USER --password-stdin
+```
 
 Start the same platform with the overlay:
 

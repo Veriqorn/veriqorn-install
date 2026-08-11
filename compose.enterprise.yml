@@ -4,10 +4,10 @@
 # identical to Community.
 services:
   frontend:
-    image: ${ENTERPRISE_FRONTEND_IMAGE:-ghcr.io/veriqorn/veriqorn-enterprise-frontend}:${ENTERPRISE_VERSION:-latest}
+    image: ${ENTERPRISE_FRONTEND_IMAGE:?Set ENTERPRISE_FRONTEND_IMAGE to an authorized immutable Enterprise frontend image reference}
 
   backend:
-    image: ${ENTERPRISE_BACKEND_IMAGE:-ghcr.io/veriqorn/veriqorn-enterprise-backend}:${ENTERPRISE_VERSION:-latest}
+    image: ${ENTERPRISE_BACKEND_IMAGE:?Set ENTERPRISE_BACKEND_IMAGE to an authorized immutable Enterprise backend image reference}
     environment:
       VERIQORN_LICENSE_FILE: /run/veriqorn/license/license.json
     volumes:
