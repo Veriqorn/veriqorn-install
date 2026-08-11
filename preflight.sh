@@ -38,6 +38,7 @@ require_secret() {
 }
 
 require_secret JWT_SECRET 32
+require_secret TRACE_TOKEN_SECRET 32
 require_secret PLATFORM_UPDATE_AGENT_TOKEN 32
 require_secret POSTGRES_PASSWORD 16
 require_secret MINIO_ROOT_PASSWORD 16

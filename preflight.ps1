@@ -37,6 +37,7 @@ function Require-Secret([string]$Name, [int]$MinimumLength) {
 }
 
 Require-Secret 'JWT_SECRET' 32
+Require-Secret 'TRACE_TOKEN_SECRET' 32
 Require-Secret 'PLATFORM_UPDATE_AGENT_TOKEN' 32
 Require-Secret 'POSTGRES_PASSWORD' 16
 Require-Secret 'MINIO_ROOT_PASSWORD' 16

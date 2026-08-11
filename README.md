@@ -13,7 +13,7 @@ Application source code is not included in this repository.
 
 1. Clone this repository or download `docker-compose.yml` and `.env.example`.
 2. Copy `.env.example` to `.env`.
-3. Set strong values for `JWT_SECRET`, `POSTGRES_PASSWORD`, `MINIO_ROOT_PASSWORD`,
+3. Set distinct strong values for `JWT_SECRET`, `TRACE_TOKEN_SECRET`, `POSTGRES_PASSWORD`, `MINIO_ROOT_PASSWORD`,
    `MINIO_SERVICE_SECRET_KEY`, and the one-time
    `BACKEND_BOOTSTRAP_ADMIN_EMAIL` / `BACKEND_BOOTSTRAP_ADMIN_PASSWORD` pair.
 4. Run the preflight check before the first start. It validates required secrets and Compose configuration without printing their values:
@@ -163,6 +163,7 @@ A fresh installation starts 5 containers total. In steady state, 4 stay running 
 
 Infrastructure passwords are configured in `.env` before the first start:
 - `JWT_SECRET` - application signing secret
+- `TRACE_TOKEN_SECRET` - distinct application secret for trace access tokens
 - `POSTGRES_PASSWORD` - PostgreSQL password
 - `MINIO_ROOT_PASSWORD` - MinIO admin password
 - `MINIO_SERVICE_ACCESS_KEY` and `MINIO_SERVICE_SECRET_KEY` - least-privilege
