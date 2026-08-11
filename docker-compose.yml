@@ -69,18 +69,22 @@ services:
     restart: unless-stopped
     environment:
       UPDATE_AGENT_TOKEN: ${PLATFORM_UPDATE_AGENT_TOKEN:?PLATFORM_UPDATE_AGENT_TOKEN is required}
-      UPDATE_COMPOSE_FILE: /install/docker-compose.yml
+      UPDATE_COMPOSE_FILES: ${UPDATE_COMPOSE_FILES:-/install/docker-compose.yml}
       UPDATE_ENV_FILE: /install/.env
       UPDATE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME:-veriqorn}
       UPDATE_CURRENT_VERSION: ${PLATFORM_VERSION:-latest}
       UPDATE_BACKEND_IMAGE: ${BACKEND_IMAGE:-ghcr.io/veriqorn/veriqorn-backend}
       UPDATE_FRONTEND_IMAGE: ${FRONTEND_IMAGE:-ghcr.io/veriqorn/veriqorn-frontend}
+      UPDATE_BACKEND_IMAGE_ENV_KEY: ${UPDATE_BACKEND_IMAGE_ENV_KEY:-BACKEND_IMAGE}
+      UPDATE_FRONTEND_IMAGE_ENV_KEY: ${UPDATE_FRONTEND_IMAGE_ENV_KEY:-FRONTEND_IMAGE}
+      UPDATE_PIN_IMAGE_DIGESTS: ${UPDATE_PIN_IMAGE_DIGESTS:-false}
       UPDATE_RELEASES_URL: ${UPDATE_RELEASES_URL:-https://raw.githubusercontent.com/veriqorn/veriqorn-install/master/releases/latest.json}
       UPDATE_COSIGN_IMAGE: ${UPDATE_COSIGN_IMAGE:-ghcr.io/sigstore/cosign/cosign:v2.4.3}
       UPDATE_COSIGN_IDENTITY: ${UPDATE_COSIGN_IDENTITY:-https://github.com/Veriqorn/veriqorn/.github/workflows/release-community.yml@refs/tags/v*}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./docker-compose.yml:/install/docker-compose.yml:ro
+      - ./compose.enterprise.yml:/install/compose.enterprise.yml:ro
       - ./.env:/install/.env:rw
       - update_agent_state:/state
 

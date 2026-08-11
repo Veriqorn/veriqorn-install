@@ -5,11 +5,17 @@ import { spawn } from 'node:child_process';
 
 const port = Number(process.env.PORT || 8787);
 const token = process.env.UPDATE_AGENT_TOKEN || '';
-const composeFile = process.env.UPDATE_COMPOSE_FILE || '/install/docker-compose.yml';
+const composeFiles = (process.env.UPDATE_COMPOSE_FILES || process.env.UPDATE_COMPOSE_FILE || '/install/docker-compose.yml')
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean);
 const envFile = process.env.UPDATE_ENV_FILE || '/install/.env';
 const projectName = process.env.UPDATE_PROJECT_NAME || 'veriqorn';
 const backendImage = process.env.UPDATE_BACKEND_IMAGE || 'ghcr.io/veriqorn/veriqorn-backend';
 const frontendImage = process.env.UPDATE_FRONTEND_IMAGE || 'ghcr.io/veriqorn/veriqorn-frontend';
+const backendImageEnvKey = process.env.UPDATE_BACKEND_IMAGE_ENV_KEY || 'BACKEND_IMAGE';
+const frontendImageEnvKey = process.env.UPDATE_FRONTEND_IMAGE_ENV_KEY || 'FRONTEND_IMAGE';
+const pinImageDigests = process.env.UPDATE_PIN_IMAGE_DIGESTS === 'true';
 const releasesUrl = process.env.UPDATE_RELEASES_URL || 'https://raw.githubusercontent.com/veriqorn/veriqorn-install/master/releases/latest.json';
 const cosignImage = process.env.UPDATE_COSIGN_IMAGE || 'ghcr.io/sigstore/cosign/cosign:v2.4.3';
 const cosignIdentity = process.env.UPDATE_COSIGN_IDENTITY || 'https://github.com/Veriqorn/veriqorn/.github/workflows/release-community.yml@refs/tags/v*';
@@ -50,7 +56,7 @@ const run = (args, environment = {}) => new Promise((resolve, reject) => {
   child.once('error', reject);
   child.once('close', (code) => code === 0 ? resolve(output.trim()) : reject(new Error(output.trim() || `docker exited ${code}`)));
 });
-const composeArgs = (...args) => ['compose', '--project-name', projectName, '--env-file', envFile, '-f', composeFile, ...args];
+const composeArgs = (...args) => ['compose', '--project-name', projectName, '--env-file', envFile, ...composeFiles.flatMap((file) => ['-f', file]), ...args];
 const release = async () => {
   const response = await fetch(releasesUrl, { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'veriqorn-update-agent' }, signal: AbortSignal.timeout(10_000) });
   if (!response.ok) throw new Error(`Release lookup failed (${response.status}).`);
@@ -65,11 +71,14 @@ const installedVersion = async () => {
   const env = await readFile(envFile, 'utf8');
   return env.match(/^PLATFORM_VERSION=(.+)$/m)?.[1]?.trim() || process.env.UPDATE_CURRENT_VERSION || 'unknown';
 };
-const updateEnvVersion = async (version) => {
+const updateEnvValues = async (values) => {
   const current = await readFile(envFile, 'utf8');
-  const next = /^PLATFORM_VERSION=/m.test(current)
-    ? current.replace(/^PLATFORM_VERSION=.*$/m, `PLATFORM_VERSION=${version}`)
-    : `${current.replace(/\s*$/, '\n')}PLATFORM_VERSION=${version}\n`;
+  let next = current;
+  for (const [key, value] of Object.entries(values)) {
+    const line = `${key}=${value}`;
+    const pattern = new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}=.*$`, 'm');
+    next = pattern.test(next) ? next.replace(pattern, line) : `${next.replace(/\s*$/, '\n')}${line}\n`;
+  }
   await writeFile(`${envFile}.next`, next, { mode: 0o600 });
   await rename(`${envFile}.next`, envFile);
 };
@@ -102,7 +111,7 @@ const imageDigest = async (image) => {
 };
 const verifyImageSignature = async (image) => run([
   'run', '--rm', cosignImage, 'verify',
-  '--certificate-identity-regexp', `^${cosignIdentity.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace('v\\*', 'v.*')}$`,
+  '--certificate-identity-regexp', `^${cosignIdentity.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '.*')}$`,
   '--certificate-oidc-issuer', 'https://token.actions.githubusercontent.com',
   image,
 ]);
@@ -112,12 +121,21 @@ const execute = async (job) => {
     const current = await installedVersion();
     if (latest.version === current) throw new Error('This installation is already on the latest release.');
     const environment = { PLATFORM_VERSION: latest.version };
+    if (pinImageDigests) {
+      environment[backendImageEnvKey] = `${backendImage}:${latest.version}`;
+      environment[frontendImageEnvKey] = `${frontendImage}:${latest.version}`;
+    }
     await run(composeArgs('pull', 'backend', 'frontend'), environment);
     const backendDigest = await imageDigest(`${backendImage}:${latest.version}`);
     const frontendDigest = await imageDigest(`${frontendImage}:${latest.version}`);
     await verifyImageSignature(backendDigest);
     await verifyImageSignature(frontendDigest);
-    await updateEnvVersion(latest.version);
+    const persistedValues = { PLATFORM_VERSION: latest.version };
+    if (pinImageDigests) {
+      persistedValues[backendImageEnvKey] = backendDigest;
+      persistedValues[frontendImageEnvKey] = frontendDigest;
+    }
+    await updateEnvValues(persistedValues);
     await run(composeArgs('up', '-d', '--no-deps', 'backend', 'frontend'));
     await waitForBackend();
     job.status = 'succeeded';

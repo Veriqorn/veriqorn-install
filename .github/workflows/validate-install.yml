@@ -7,6 +7,7 @@ on:
       - ".env.example"
       - "docker-compose.yml"
       - "compose.enterprise.yml"
+      - "update-agent/server.mjs"
       - "preflight.sh"
       - ".github/workflows/validate-install.yml"
   pull_request:
@@ -14,6 +15,7 @@ on:
       - ".env.example"
       - "docker-compose.yml"
       - "compose.enterprise.yml"
+      - "update-agent/server.mjs"
       - "preflight.sh"
       - ".github/workflows/validate-install.yml"
 
@@ -48,3 +50,6 @@ jobs:
           VERIQORN_INSTALLATION_KEY_ENCRYPTION_KEY=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8
           EOF
           docker compose --env-file .env.ci -f docker-compose.yml -f compose.enterprise.yml config --quiet
+
+      - name: Check update agent syntax
+        run: node --check update-agent/server.mjs

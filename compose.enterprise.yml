@@ -14,3 +14,20 @@ services:
       VERIQORN_INSTALLATION_KEY_ENCRYPTION_KEY: ${VERIQORN_INSTALLATION_KEY_ENCRYPTION_KEY:?Set a 32-byte base64url VERIQORN_INSTALLATION_KEY_ENCRYPTION_KEY}
     volumes:
       - ${VERIQORN_LICENSE_FILE:?Set VERIQORN_LICENSE_FILE to the local license file path}:/run/veriqorn/license/license.json:ro
+
+  update-agent:
+    environment:
+      # Enterprise uses a separate signed release channel and writes verified
+      # immutable image digests back to .env after each successful update.
+      UPDATE_COMPOSE_FILES: /install/docker-compose.yml,/install/compose.enterprise.yml
+      UPDATE_BACKEND_IMAGE: ${ENTERPRISE_BACKEND_IMAGE_REPOSITORY:-ghcr.io/veriqorn/veriqorn-enterprise-backend}
+      UPDATE_FRONTEND_IMAGE: ${ENTERPRISE_FRONTEND_IMAGE_REPOSITORY:-ghcr.io/veriqorn/veriqorn-enterprise-frontend}
+      UPDATE_BACKEND_IMAGE_ENV_KEY: ENTERPRISE_BACKEND_IMAGE
+      UPDATE_FRONTEND_IMAGE_ENV_KEY: ENTERPRISE_FRONTEND_IMAGE
+      UPDATE_PIN_IMAGE_DIGESTS: "true"
+      UPDATE_RELEASES_URL: ${ENTERPRISE_UPDATE_RELEASES_URL:-https://raw.githubusercontent.com/Veriqorn/veriqorn-install/master/releases/enterprise/latest.json}
+      UPDATE_COSIGN_IDENTITY: https://github.com/Veriqorn/veriqorn-enterprise/.github/workflows/release-enterprise.yml@refs/tags/enterprise-v*
+      # The updater invokes the same overlay after verification, so it needs
+      # the two deployment-only values used during Compose interpolation.
+      VERIQORN_LICENSE_FILE: ${VERIQORN_LICENSE_FILE:?Set VERIQORN_LICENSE_FILE to the local license file path}
+      VERIQORN_INSTALLATION_KEY_ENCRYPTION_KEY: ${VERIQORN_INSTALLATION_KEY_ENCRYPTION_KEY:?Set a 32-byte base64url VERIQORN_INSTALLATION_KEY_ENCRYPTION_KEY}
