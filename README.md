@@ -79,6 +79,15 @@ Enterprise packages before starting:
 echo "$GHCR_TOKEN" | docker login ghcr.io -u YOUR_GITHUB_USER --password-stdin
 ```
 
+Before the first license is issued, set `VERIQORN_LICENSE_PUBLIC_KEYS` in
+`.env.enterprise` to a JSON key ring whose key ID matches the issuer's
+`--key-id`, for example
+`{"veriqorn-prod-2026-01":"<base64-SPKI-or-PEM>"}`. This is a **public**
+verification key; never put the issuer private key, a customer license, or a
+registry credential in this file. The license operator distributes the public
+key before issuing a license and the customer then mounts the issued JSON via
+`VERIQORN_LICENSE_FILE`.
+
 Start the same platform with the overlay:
 
 ```bash
