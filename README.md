@@ -2,6 +2,11 @@
 
 Public self-hosted installation assets for Veriqorn Community.
 
+Full Quick Start: <https://veriqorn.vercel.app/docs/quick-start-installation>
+
+For Enterprise deployment and activation, see
+<https://veriqorn.vercel.app/docs/ai-pro-license>.
+
 This repository contains deployment-facing files only:
 - `docker-compose.yml`
 - `.env.example`
@@ -66,8 +71,9 @@ After `.env` is prepared, the platform starts with that single command.
 ## Enterprise Overlay
 
 Community is the default and never needs a product license. For Enterprise,
-obtain access to the private Enterprise image registry and a signed license
-file from Veriqorn. Keep that license outside Git, then create
+follow the [Enterprise deployment and activation guide](https://veriqorn.vercel.app/docs/ai-pro-license),
+then obtain access to the Enterprise image registry and a signed license file
+from Veriqorn. Keep that license outside Git, then create
 `.env.enterprise` from `.env.enterprise.example` and set its local path.
 The example pins the tested Enterprise AI v0.1.0 images (paired with
 Community Core v0.2.6) by digest. Do not replace them with an unverified tag.
