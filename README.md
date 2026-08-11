@@ -87,6 +87,13 @@ customer license with the matching private key and the customer mounts that
 issued JSON via `VERIQORN_LICENSE_FILE`. Key rotation is delivered in a new
 Enterprise image before licenses signed with a new `keyId` are issued.
 
+This does not replace activation. On first start, the Enterprise backend
+creates an installation-specific key pair and an administrator exports its
+activation-request JSON. Send that JSON to Veriqorn; it contains only the
+installation's public identity and fingerprint. Veriqorn signs a license bound
+to that installation and returns the license JSON to mount. Do not send the
+installation private key or expect to receive Veriqorn's issuer private key.
+
 Generate and retain a separate `VERIQORN_INSTALLATION_KEY_ENCRYPTION_KEY` for
 the Enterprise installation. It must be a 32-byte base64url value and encrypts
 the installation's locally stored private identity key. Losing it prevents the
