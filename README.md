@@ -79,14 +79,13 @@ Enterprise packages before starting:
 echo "$GHCR_TOKEN" | docker login ghcr.io -u YOUR_GITHUB_USER --password-stdin
 ```
 
-Before the first license is issued, set `VERIQORN_LICENSE_PUBLIC_KEYS` in
-`.env.enterprise` to a JSON key ring whose key ID matches the issuer's
-`--key-id`, for example
-`{"veriqorn-prod-2026-01":"<base64-SPKI-or-PEM>"}`. This is a **public**
-verification key; never put the issuer private key, a customer license, or a
-registry credential in this file. The license operator distributes the public
-key before issuing a license and the customer then mounts the issued JSON via
-`VERIQORN_LICENSE_FILE`.
+The Enterprise image already contains Veriqorn's production **public**
+verification key for `veriqorn-prod-2026-01`, so the customer does not need to
+configure it. Never put the issuer private key, a customer license, or a
+registry credential in `.env.enterprise`. The license operator signs the
+customer license with the matching private key and the customer mounts that
+issued JSON via `VERIQORN_LICENSE_FILE`. Key rotation is delivered in a new
+Enterprise image before licenses signed with a new `keyId` are issued.
 
 Generate and retain a separate `VERIQORN_INSTALLATION_KEY_ENCRYPTION_KEY` for
 the Enterprise installation. It must be a 32-byte base64url value and encrypts
