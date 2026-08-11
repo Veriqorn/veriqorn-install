@@ -88,6 +88,12 @@ registry credential in this file. The license operator distributes the public
 key before issuing a license and the customer then mounts the issued JSON via
 `VERIQORN_LICENSE_FILE`.
 
+Generate and retain a separate `VERIQORN_INSTALLATION_KEY_ENCRYPTION_KEY` for
+the Enterprise installation. It must be a 32-byte base64url value and encrypts
+the installation's locally stored private identity key. Losing it prevents the
+existing installation identity from being read; rotating it is a planned
+maintenance operation, not a value to regenerate during an upgrade.
+
 Start the same platform with the overlay:
 
 ```bash

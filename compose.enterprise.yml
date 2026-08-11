@@ -10,5 +10,7 @@ services:
     image: ${ENTERPRISE_BACKEND_IMAGE:?Set ENTERPRISE_BACKEND_IMAGE to an authorized immutable Enterprise backend image reference}
     environment:
       VERIQORN_LICENSE_FILE: /run/veriqorn/license/license.json
+      VERIQORN_REQUIRE_ENCRYPTED_INSTALLATION_IDENTITY: "true"
+      VERIQORN_INSTALLATION_KEY_ENCRYPTION_KEY: ${VERIQORN_INSTALLATION_KEY_ENCRYPTION_KEY:?Set a 32-byte base64url VERIQORN_INSTALLATION_KEY_ENCRYPTION_KEY}
     volumes:
       - ${VERIQORN_LICENSE_FILE:?Set VERIQORN_LICENSE_FILE to the local license file path}:/run/veriqorn/license/license.json:ro
