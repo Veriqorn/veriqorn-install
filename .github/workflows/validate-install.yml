@@ -39,7 +39,7 @@ jobs:
             -e 's|^MINIO_ROOT_PASSWORD=.*|MINIO_ROOT_PASSWORD=ci-minio-root-password-at-least-sixteen|' \
             -e 's|^MINIO_SERVICE_SECRET_KEY=.*|MINIO_SERVICE_SECRET_KEY=ci-minio-service-secret-at-least-sixteen|' \
             .env.ci
-          ./preflight.sh .env.ci
+          sh ./preflight.sh .env.ci
           : > .ci-license.json
           cat >> .env.ci <<EOF
           ENTERPRISE_BACKEND_IMAGE=example.invalid/veriqorn-enterprise-backend@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
