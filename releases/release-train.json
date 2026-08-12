@@ -6,7 +6,7 @@
   },
   "enterprise": {
     "extensionId": "enterprise-ai",
-    "extensionVersion": "0.2.14",
-    "releaseNotesUrl": "https://github.com/Veriqorn/veriqorn-install/blob/master/releases/enterprise/v0.2.14.md"
+    "extensionVersion": "0.2.15",
+    "releaseNotesUrl": "https://github.com/Veriqorn/veriqorn-install/blob/master/releases/enterprise/v0.2.15.md"
   }
 }
