@@ -25,6 +25,16 @@ let activeJob = null;
 if (token.length < 32) throw new Error('UPDATE_AGENT_TOKEN must be at least 32 characters.');
 
 const isReleaseTag = (value) => /^v\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(value);
+const compareReleaseTags = (left, right) => {
+  const parse = (value) => value.match(/^v(\d+)\.(\d+)\.(\d+)/)?.slice(1).map(Number) || null;
+  const leftParts = parse(left);
+  const rightParts = parse(right);
+  if (!leftParts || !rightParts) return null;
+  for (let index = 0; index < leftParts.length; index += 1) {
+    if (leftParts[index] !== rightParts[index]) return leftParts[index] - rightParts[index];
+  }
+  return 0;
+};
 const equalToken = (candidate) => {
   const left = Buffer.from(candidate || '');
   const right = Buffer.from(token);
@@ -99,7 +109,8 @@ const getStatus = async () => {
   const currentVersion = await installedVersion();
   try {
     const latest = await release();
-    return { currentVersion, latestVersion: latest.version, updateAvailable: latest.version !== currentVersion, releaseNotesUrl: latest.releaseNotesUrl, job: activeJob };
+    const comparison = compareReleaseTags(latest.version, currentVersion);
+    return { currentVersion, latestVersion: latest.version, updateAvailable: comparison !== null && comparison > 0, releaseNotesUrl: latest.releaseNotesUrl, job: activeJob };
   } catch (error) {
     return { currentVersion, latestVersion: null, updateAvailable: false, releaseNotesUrl: null, job: activeJob, warning: safeMessage(error) };
   }
@@ -119,7 +130,8 @@ const execute = async (job) => {
   try {
     const latest = await release();
     const current = await installedVersion();
-    if (latest.version === current) throw new Error('This installation is already on the latest release.');
+    const comparison = compareReleaseTags(latest.version, current);
+    if (comparison === null || comparison <= 0) throw new Error('This installation is already on the latest release.');
     const environment = { PLATFORM_VERSION: latest.version };
     if (pinImageDigests) {
       environment[backendImageEnvKey] = `${backendImage}:${latest.version}`;
