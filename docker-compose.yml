@@ -9,6 +9,7 @@ services:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
       VITE_KB_URL: ${NEXT_PUBLIC_KB_URL:-http://localhost:5174}
       NEXT_PUBLIC_KB_URL: ${NEXT_PUBLIC_KB_URL:-http://localhost:5174}
+      PLATFORM_VERSION: ${PLATFORM_VERSION:-latest}
     depends_on:
       - backend
 
