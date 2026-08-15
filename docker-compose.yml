@@ -88,6 +88,9 @@ services:
       - ./docker-compose.yml:/install/docker-compose.yml:ro
       - ./compose.enterprise.yml:/install/compose.enterprise.yml:ro
       - ./.env:/install/.env:rw
+      # The agent uses the Docker daemon through its socket, but registry
+      # credentials are resolved by the Docker CLI inside this container.
+      - ${UPDATE_DOCKER_CONFIG_PATH:-./.docker}:/root/.docker:ro
       - update_agent_state:/state
 
   postgres:

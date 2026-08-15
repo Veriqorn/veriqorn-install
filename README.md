@@ -85,6 +85,11 @@ Enterprise packages before starting:
 echo "$GHCR_TOKEN" | docker login ghcr.io -u YOUR_GITHUB_USER --password-stdin
 ```
 
+For in-product updates, also set `UPDATE_DOCKER_CONFIG_PATH` in `.env` to the
+host directory containing Docker's authenticated `config.json` (for example,
+`~/.docker`). The isolated update agent needs that read-only CLI configuration
+to pull the private Enterprise image pair through the Docker socket.
+
 The Enterprise image already contains Veriqorn's production **public**
 verification key for `veriqorn-prod-2026-01`, so the customer does not need to
 configure it. Never put the issuer private key, a customer license, or a
