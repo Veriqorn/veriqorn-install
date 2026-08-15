@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "version": "v0.2.25",
+  "version": "v0.2.26",
   "community": {
-    "releaseNotesUrl": "https://github.com/Veriqorn/veriqorn-install/blob/master/releases/v0.2.25.md"
+    "releaseNotesUrl": "https://github.com/Veriqorn/veriqorn-install/blob/master/releases/v0.2.26.md"
   },
   "enterprise": {
     "extensionId": "enterprise-ai",
-    "extensionVersion": "0.2.25",
-    "releaseNotesUrl": "https://github.com/Veriqorn/veriqorn-install/blob/master/releases/enterprise/v0.2.25.md"
+    "extensionVersion": "0.2.26",
+    "releaseNotesUrl": "https://github.com/Veriqorn/veriqorn-install/blob/master/releases/enterprise/v0.2.26.md"
   }
 }
