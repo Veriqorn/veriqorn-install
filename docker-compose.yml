@@ -83,14 +83,13 @@ services:
       UPDATE_RELEASES_URL: ${UPDATE_RELEASES_URL:-https://raw.githubusercontent.com/veriqorn/veriqorn-install/master/releases/latest.json}
       UPDATE_COSIGN_IMAGE: ${UPDATE_COSIGN_IMAGE:-ghcr.io/sigstore/cosign/cosign:v2.4.3}
       UPDATE_COSIGN_IDENTITY: ${UPDATE_COSIGN_IDENTITY:-https://github.com/Veriqorn/veriqorn/.github/workflows/release-community.yml@refs/tags/v*}
+      UPDATE_REGISTRY_USERNAME: ${UPDATE_REGISTRY_USERNAME:-}
+      UPDATE_REGISTRY_TOKEN: ${UPDATE_REGISTRY_TOKEN:-}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./docker-compose.yml:/install/docker-compose.yml:ro
       - ./compose.enterprise.yml:/install/compose.enterprise.yml:ro
       - ./.env:/install/.env:rw
-      # The agent uses the Docker daemon through its socket, but registry
-      # credentials are resolved by the Docker CLI inside this container.
-      - ${UPDATE_DOCKER_CONFIG_PATH:-./.docker}:/root/.docker:ro
       - update_agent_state:/state
 
   postgres:

@@ -1,6 +1,6 @@
 import { timingSafeEqual } from 'node:crypto';
 import { createServer } from 'node:http';
-import { appendFile, readFile, rename, writeFile } from 'node:fs/promises';
+import { appendFile, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 
 const port = Number(process.env.PORT || 8787);
@@ -23,6 +23,8 @@ const pinImageDigests = process.env.UPDATE_PIN_IMAGE_DIGESTS === 'true';
 const releasesUrl = process.env.UPDATE_RELEASES_URL || 'https://raw.githubusercontent.com/veriqorn/veriqorn-install/master/releases/latest.json';
 const cosignImage = process.env.UPDATE_COSIGN_IMAGE || 'ghcr.io/sigstore/cosign/cosign:v2.4.3';
 const cosignIdentity = process.env.UPDATE_COSIGN_IDENTITY || 'https://github.com/Veriqorn/veriqorn/.github/workflows/release-community.yml@refs/tags/v*';
+const registryUsername = process.env.UPDATE_REGISTRY_USERNAME || '';
+const registryToken = process.env.UPDATE_REGISTRY_TOKEN || '';
 const stateFile = '/state/update-jobs.jsonl';
 let activeJob = null;
 
@@ -62,11 +64,12 @@ const readBody = async (request) => {
   }
   return chunks.length ? JSON.parse(Buffer.concat(chunks).toString('utf8')) : {};
 };
-const run = (args, environment = {}) => new Promise((resolve, reject) => {
-  const child = spawn('docker', args, { env: { ...process.env, ...environment }, stdio: ['ignore', 'pipe', 'pipe'] });
+const run = (args, environment = {}, input = '') => new Promise((resolve, reject) => {
+  const child = spawn('docker', args, { env: { ...process.env, ...environment }, stdio: ['pipe', 'pipe', 'pipe'] });
   let output = '';
   child.stdout.on('data', (data) => { output = (output + data).slice(-8000); });
   child.stderr.on('data', (data) => { output = (output + data).slice(-8000); });
+  child.stdin.end(input);
   child.once('error', reject);
   child.once('close', (code) => code === 0 ? resolve(output.trim()) : reject(new Error(output.trim() || `docker exited ${code}`)));
 });
@@ -131,12 +134,19 @@ const verifyImageSignature = async (image) => run([
   image,
 ]);
 const execute = async (job) => {
+  let dockerConfigDirectory = null;
   try {
     const latest = await release();
     const current = await installedVersion();
     const comparison = compareReleaseTags(latest.version, current);
     if (comparison === null || comparison <= 0) throw new Error('This installation is already on the latest release.');
     const environment = { PLATFORM_VERSION: latest.version };
+    if (Boolean(registryUsername) !== Boolean(registryToken)) throw new Error('Set both UPDATE_REGISTRY_USERNAME and UPDATE_REGISTRY_TOKEN for private registry access.');
+    if (registryToken) {
+      dockerConfigDirectory = await mkdtemp('/tmp/veriqorn-update-registry-');
+      environment.DOCKER_CONFIG = dockerConfigDirectory;
+      await run(['login', 'ghcr.io', '--username', registryUsername, '--password-stdin'], environment, `${registryToken}\n`);
+    }
     if (pinImageDigests) {
       environment[backendImageEnvKey] = `${backendImage}:${latest.version}`;
       environment[frontendImageEnvKey] = `${frontendImage}:${latest.version}`;
@@ -159,6 +169,9 @@ const execute = async (job) => {
   } catch (error) {
     job.status = 'failed';
     job.message = safeMessage(error);
+  }
+  finally {
+    if (dockerConfigDirectory) await rm(dockerConfigDirectory, { recursive: true, force: true });
   }
   job.finishedAt = new Date().toISOString();
   await record(job);
