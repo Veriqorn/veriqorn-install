@@ -28,6 +28,7 @@ services:
       UPDATE_RELEASES_URL: ${ENTERPRISE_UPDATE_RELEASES_URL:-https://raw.githubusercontent.com/Veriqorn/veriqorn-install/master/releases/enterprise/latest.json}
       UPDATE_COSIGN_IDENTITY: https://github.com/Veriqorn/veriqorn-enterprise/.github/workflows/release-enterprise.yml@refs/tags/enterprise-v*
       UPDATE_ENV_FILE: /install/.env.enterprise
+      UPDATE_COMPOSE_ENV_FILES: /install/.env,/install/.env.enterprise
       # The updater invokes the same overlay after verification, so it needs
       # the two deployment-only values used during Compose interpolation.
       VERIQORN_LICENSE_FILE: ${VERIQORN_LICENSE_FILE:?Set VERIQORN_LICENSE_FILE to the local license file path}

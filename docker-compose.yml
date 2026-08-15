@@ -72,6 +72,7 @@ services:
       UPDATE_AGENT_TOKEN: ${PLATFORM_UPDATE_AGENT_TOKEN:?PLATFORM_UPDATE_AGENT_TOKEN is required}
       UPDATE_COMPOSE_FILES: ${UPDATE_COMPOSE_FILES:-/install/docker-compose.yml}
       UPDATE_ENV_FILE: /install/.env
+      UPDATE_COMPOSE_ENV_FILES: ${UPDATE_COMPOSE_ENV_FILES:-/install/.env}
       UPDATE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME:-veriqorn}
       UPDATE_CURRENT_VERSION: ${PLATFORM_VERSION:-latest}
       UPDATE_BACKEND_IMAGE: ${BACKEND_IMAGE:-ghcr.io/veriqorn/veriqorn-backend}

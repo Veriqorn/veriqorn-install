@@ -10,6 +10,10 @@ const composeFiles = (process.env.UPDATE_COMPOSE_FILES || process.env.UPDATE_COM
   .map((value) => value.trim())
   .filter(Boolean);
 const envFile = process.env.UPDATE_ENV_FILE || '/install/.env';
+const composeEnvFiles = (process.env.UPDATE_COMPOSE_ENV_FILES || envFile)
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean);
 const projectName = process.env.UPDATE_PROJECT_NAME || 'veriqorn';
 const backendImage = process.env.UPDATE_BACKEND_IMAGE || 'ghcr.io/veriqorn/veriqorn-backend';
 const frontendImage = process.env.UPDATE_FRONTEND_IMAGE || 'ghcr.io/veriqorn/veriqorn-frontend';
@@ -66,7 +70,7 @@ const run = (args, environment = {}) => new Promise((resolve, reject) => {
   child.once('error', reject);
   child.once('close', (code) => code === 0 ? resolve(output.trim()) : reject(new Error(output.trim() || `docker exited ${code}`)));
 });
-const composeArgs = (...args) => ['compose', '--project-name', projectName, '--env-file', envFile, ...composeFiles.flatMap((file) => ['-f', file]), ...args];
+const composeArgs = (...args) => ['compose', '--project-name', projectName, ...composeEnvFiles.flatMap((file) => ['--env-file', file]), ...composeFiles.flatMap((file) => ['-f', file]), ...args];
 const release = async () => {
   const response = await fetch(releasesUrl, { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'veriqorn-update-agent' }, signal: AbortSignal.timeout(10_000) });
   if (!response.ok) throw new Error(`Release lookup failed (${response.status}).`);
